@@ -1,0 +1,30 @@
+@import "tailwindcss";
+
+@theme {
+  --color-primary: #0b1f3a;
+  --color-accent: #00bfa6;
+  --color-success: #10b981;
+  --color-danger: #ef4444;
+  --color-bg-light: #f3f4f6;
+
+  --font-poppins: "Poppins", sans-serif;
+  --font-roboto: "Roboto", sans-serif;
+
+  --radius-xl: 12px;
+}
+
+@layer base {
+  body {
+    @apply bg-bg-light text-primary font-poppins;
+  }
+}
+
+@layer components {
+  .glass-card {
+    @apply bg-white/80 backdrop-blur-md border border-white/20 shadow-xl rounded-xl;
+  }
+
+  .btn-ripple {
+    @apply relative overflow-hidden;
+  }
+}

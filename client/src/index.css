@@ -1,0 +1,38 @@
+@import "tailwindcss";
+
+@theme {
+  --color-primary: #0b1f3a;
+  --color-accent: #00bfa6;
+  --color-success: #10b981;
+  --color-danger: #ef4444;
+  --color-bg-light: #f3f4f6;
+
+  --font-poppins: "Poppins", sans-serif;
+  --font-roboto: "Roboto", sans-serif;
+
+  --radius-xl: 12px;
+}
+
+@layer base {
+  body {
+    @apply bg-bg-light text-primary font-poppins transition-colors duration-300;
+  }
+}
+
+@layer components {
+  .glass-card {
+    @apply bg-white backdrop-blur-md border border-gray-100 shadow-xl rounded-xl transition-colors duration-300;
+  }
+
+  .dark .glass-card {
+    @apply bg-[#0b1f3a] border-white/10 shadow-black/40;
+  }
+
+  .dark .text-gray-400, .dark .text-gray-500 {
+    @apply text-gray-400;
+  }
+
+  .dark .bg-gray-50 {
+    @apply bg-[#050b14];
+  }
+}
