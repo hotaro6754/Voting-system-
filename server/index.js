@@ -8,7 +8,6 @@ const dotenv = require('dotenv');
 dotenv.config();
 
 const authRoutes = require('./routes/auth');
-const auditLogger = require('./middleware/auditLogger');
 const datasetRoutes = require('./routes/datasetRoutes');
 const sessionRoutes = require('./routes/sessionRoutes');
 const voteRoutes = require('./routes/voteRoutes');
@@ -19,8 +18,8 @@ const app = express();
 // Security Middleware
 app.use(helmet());
 app.use(cors({
-  origin: process.env.CLIENT_URL || '*',
-  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  origin: '*',
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
 app.use(express.json());
@@ -28,11 +27,16 @@ app.use(morgan('dev'));
 
 // Rate Limiting
 const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // Limit each IP to 100 requests per windowMs
-  message: 'Too many requests from this IP, please try again after 15 minutes'
+  windowMs: 15 * 60 * 1000,
+  max: 100,
+  message: 'Too many requests from this IP, please try again after 15 minutes',
+  standardHeaders: true,
+  legacyHeaders: false,
 });
 app.use('/api/', limiter);
+
+// Health check - Move to top
+app.get('/api/health', (req, res) => res.status(200).json({ status: 'ok' }));
 
 // Routes
 app.use('/api/auth', authRoutes);
@@ -47,7 +51,12 @@ app.use((err, req, res, next) => {
   res.status(500).json({ message: 'Something went wrong on the server' });
 });
 
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
+// For local development
+if (process.env.NODE_ENV !== 'production') {
+  const PORT = process.env.PORT || 5000;
+  app.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
+  });
+}
+
+module.exports = app;

@@ -1,15 +1,4 @@
-
-> server@1.0.0 start
-> node index.js
-
-[dotenv@17.2.4] injecting env (0) from .env -- tip: 👥 sync secrets across teammates & machines: https://dotenvx.com/ops
+[dotenv@17.2.4] injecting env (0) from .env -- tip: 🔐 prevent building .env in docker: https://dotenvx.com/prebuild
 [dotenv@17.2.4] injecting env (0) from .env -- tip: ⚙️  override existing env vars with { override: true }
 Firebase Admin SDK initialized successfully
 Server running on port 5000
-[0mGET /api/sessions [0m-[0m - ms - -[0m
-[0mGET /api/sessions [31m500[0m 6.432 ms - 195[0m
-[0mGET /api/sessions [31m500[0m 1.903 ms - 195[0m
-[0mGET /api/datasets [33m401[0m 8.339 ms - 32[0m
-[0mGET /api/datasets [33m401[0m 1.521 ms - 32[0m
-[0mGET /api/datasets [33m401[0m 1.553 ms - 32[0m
-[0mGET /api/datasets [33m401[0m 1.594 ms - 32[0m

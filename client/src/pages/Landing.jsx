@@ -1,13 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import api from '../services/api';
 import { Shield, Clock, ArrowRight } from 'lucide-react';
 import { motion } from 'framer-motion';
 import Button from '../components/Button';
 import Card from '../components/Card';
 import Loader from '../components/Loader';
-
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 const Landing = () => {
   const [sessions, setSessions] = useState([]);
@@ -17,7 +15,7 @@ const Landing = () => {
   useEffect(() => {
     const fetchSessions = async () => {
       try {
-        const res = await axios.get(`${API_URL}/api/sessions`);
+        const res = await api.get('/api/sessions');
         setSessions(res.data);
       } catch (err) {
         console.error(err);
@@ -38,7 +36,7 @@ const Landing = () => {
   };
 
   return (
-    <div className="min-h-screen bg-bg-light flex flex-col items-center justify-center p-6">
+    <div className="min-h-screen bg-bg-light dark:bg-gray-900 flex flex-col items-center justify-center p-6">
       <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -54,8 +52,8 @@ const Landing = () => {
                 <Shield className="w-12 h-12 text-accent" />
              </div>
           </motion.div>
-          <h1 className="text-4xl font-bold text-primary">Class Representative Election 2026</h1>
-          <p className="text-gray-600 max-w-2xl mx-auto">
+          <h1 className="text-4xl font-bold text-primary dark:text-white">Class Representative Election 2026</h1>
+          <p className="text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
             A secure, digital voting platform for educational institutions. Cast your vote with confidence and privacy.
           </p>
         </div>
@@ -80,7 +78,7 @@ const Landing = () => {
                       <Clock className="w-5 h-5 text-gray-400" />
                     </div>
                     <div>
-                      <h3 className="text-xl font-bold text-primary">{session.name}</h3>
+                      <h3 className="text-xl font-bold text-primary dark:text-white">{session.name}</h3>
                       <p className="text-sm text-gray-500">Duration: 24 Hours</p>
                     </div>
                   </div>

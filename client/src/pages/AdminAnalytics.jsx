@@ -1,91 +1,43 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import axios from 'axios';
-import { Bar } from 'react-chartjs-2';
-import {
-  Chart as ChartJS,
-  CategoryScale,
-  LinearScale,
-  BarElement,
-  Title,
-  Tooltip,
-  Legend,
-} from 'chart.js';
-import { Trophy, Users, CheckCircle, Percent, ArrowLeft, Download } from 'lucide-react';
+import { useParams } from 'react-router-dom';
+import api from '../services/api';
+import { Bar, Pie } from 'react-chartjs-2';
+import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend, ArcElement } from 'chart.js';
+import { Download, Users, CheckCircle, Percent, Trophy } from 'lucide-react';
+import AdminLayout from '../components/AdminLayout';
 import Button from '../components/Button';
 import Card from '../components/Card';
 import Loader from '../components/Loader';
-import Toast from '../components/Toast';
 
-ChartJS.register(
-  CategoryScale,
-  LinearScale,
-  BarElement,
-  Title,
-  Tooltip,
-  Legend
-);
-
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend, ArcElement);
 
 const AdminAnalytics = () => {
   const { sessionId } = useParams();
-  const navigate = useNavigate();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [toast, setToast] = useState(null);
-
-  const authHeader = { headers: { Authorization: `Bearer ${localStorage.getItem('adminToken')}` } };
 
   useEffect(() => {
     fetchResults();
+    const interval = setInterval(fetchResults, 30000); // Polling every 30s
+    return () => clearInterval(interval);
   }, [sessionId]);
 
   const fetchResults = async () => {
     try {
-      const res = await axios.get(`${API_URL}/api/analytics/results/${sessionId}`, authHeader);
+      const res = await api.get(`/api/analytics/results/${sessionId}`);
       setData(res.data);
     } catch (err) {
-      setToast({ message: err.response?.data?.message || 'Failed to fetch results', type: 'error' });
+      console.error(err);
     } finally {
       setLoading(false);
     }
   };
 
-  if (loading) return <Loader className="py-20" />;
-  if (!data) return <div className="text-center py-20 text-gray-500">No data found for this session.</div>;
-
-  const labels = Object.keys(data.results);
-  const votes = Object.values(data.results);
-  const winner = labels.length > 0 ? labels.reduce((a, b) => data.results[a] > data.results[b] ? a : b) : 'N/A';
-
-  const chartData = {
-    labels,
-    datasets: [
-      {
-        label: 'Votes Received',
-        data: votes,
-        backgroundColor: '#00BFA6',
-        borderRadius: 8,
-      },
-    ],
-  };
-
-  const chartOptions = {
-    responsive: true,
-    plugins: {
-      legend: { display: false },
-      title: { display: true, text: 'Vote Distribution per Candidate' },
-    },
-    scales: {
-      y: { beginAtZero: true, ticks: { stepSize: 1 } }
-    }
-  };
-
-  const exportCSV = () => {
+  const handleExport = () => {
+    if (!data) return;
     const csvContent = "data:text/csv;charset=utf-8,"
       + "Candidate,Votes\n"
-      + labels.map(l => `${l},${data.results[l]}`).join("\n");
+      + data.tallies.map(t => `${t.candidate},${t.votes}`).join("\n");
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement("a");
     link.setAttribute("href", encodedUri);
@@ -94,81 +46,74 @@ const AdminAnalytics = () => {
     link.click();
   };
 
+  if (loading) return <AdminLayout title="Analytics"><Loader /></AdminLayout>;
+  if (!data) return <AdminLayout title="Analytics"><div>No data found for this session.</div></AdminLayout>;
+
+  const barData = {
+    labels: data.tallies.map(t => t.candidate),
+    datasets: [{
+      label: 'Votes',
+      data: data.tallies.map(t => t.votes),
+      backgroundColor: '#00BFA6',
+      borderRadius: 8,
+    }]
+  };
+
+  const winner = data.tallies[0];
+
   return (
-    <div className="space-y-8">
-      <div className="flex items-center justify-between">
-        <button onClick={() => navigate(-1)} className="flex items-center gap-2 text-gray-500 hover:text-primary transition-colors">
-          <ArrowLeft className="w-5 h-5" /> Back to Sessions
-        </button>
-        <Button onClick={exportCSV} variant="outline" className="flex items-center gap-2">
-          <Download className="w-4 h-4" /> Export Results
-        </Button>
-      </div>
+    <AdminLayout title={`Results: ${data.sessionName}`} activePage="analytics">
+      <div className="space-y-8">
+        {/* Quick Stats */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+          <Card className="flex items-center gap-4 bg-primary text-white">
+             <div className="p-3 bg-white/10 rounded-xl"><Users /></div>
+             <div><p className="text-xs opacity-70">Eligible Voters</p><p className="text-2xl font-bold">{data.totalEligible}</p></div>
+          </Card>
+          <Card className="flex items-center gap-4 border-accent/20">
+             <div className="p-3 bg-accent/10 rounded-xl text-accent"><CheckCircle /></div>
+             <div><p className="text-xs text-gray-500">Votes Cast</p><p className="text-2xl font-bold text-primary dark:text-white">{data.totalVotes}</p></div>
+          </Card>
+          <Card className="flex items-center gap-4">
+             <div className="p-3 bg-blue-100 dark:bg-blue-900/20 rounded-xl text-blue-600"><Percent /></div>
+             <div><p className="text-xs text-gray-500">Participation</p><p className="text-2xl font-bold text-primary dark:text-white">{data.participationRate}%</p></div>
+          </Card>
+          <Card className="flex items-center gap-4 border-yellow-200">
+             <div className="p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-xl text-yellow-600"><Trophy /></div>
+             <div><p className="text-xs text-gray-500">Leading</p><p className="text-2xl font-bold text-primary dark:text-white">{winner?.candidate || 'N/A'}</p></div>
+          </Card>
+        </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <Card className="border-l-4 border-accent">
-           <div className="flex items-center gap-4">
-              <div className="bg-accent/10 p-3 rounded-full"><Trophy className="w-6 h-6 text-accent" /></div>
-              <div>
-                <p className="text-[10px] uppercase font-bold text-gray-400">Current Winner</p>
-                <p className="text-xl font-bold text-primary">{winner}</p>
-              </div>
-           </div>
-        </Card>
-        <Card className="border-l-4 border-primary">
-           <div className="flex items-center gap-4">
-              <div className="bg-primary/10 p-3 rounded-full"><Users className="w-6 h-6 text-primary" /></div>
-              <div>
-                <p className="text-[10px] uppercase font-bold text-gray-400">Total Voters</p>
-                <p className="text-xl font-bold text-primary">{data.totalEligible}</p>
-              </div>
-           </div>
-        </Card>
-        <Card className="border-l-4 border-success">
-           <div className="flex items-center gap-4">
-              <div className="bg-success/10 p-3 rounded-full"><CheckCircle className="w-6 h-6 text-success" /></div>
-              <div>
-                <p className="text-[10px] uppercase font-bold text-gray-400">Votes Cast</p>
-                <p className="text-xl font-bold text-primary">{data.totalVotes}</p>
-              </div>
-           </div>
-        </Card>
-        <Card className="border-l-4 border-yellow-500">
-           <div className="flex items-center gap-4">
-              <div className="bg-yellow-500/10 p-3 rounded-full"><Percent className="w-6 h-6 text-yellow-500" /></div>
-              <div>
-                <p className="text-[10px] uppercase font-bold text-gray-400">Participation</p>
-                <p className="text-xl font-bold text-primary">{data.participationRate.toFixed(1)}%</p>
-              </div>
-           </div>
-        </Card>
-      </div>
+        <div className="grid lg:grid-cols-3 gap-8">
+          <Card className="lg:col-span-2 space-y-6">
+            <div className="flex justify-between items-center">
+              <h3 className="font-bold text-lg text-primary dark:text-white">Vote Distribution</h3>
+              <Button variant="outline" size="sm" onClick={handleExport} className="flex items-center gap-2">
+                <Download className="w-4 h-4" /> Export CSV
+              </Button>
+            </div>
+            <div className="h-[400px]">
+              <Bar data={barData} options={{ maintainAspectRatio: false, plugins: { legend: { display: false } } }} />
+            </div>
+          </Card>
 
-      <div className="grid md:grid-cols-3 gap-8">
-        <Card className="md:col-span-2">
-          <Bar data={chartData} options={chartOptions} />
-        </Card>
-        <Card className="h-full">
-           <h3 className="text-lg font-bold text-primary mb-6">Live Leaderboard</h3>
-           <div className="space-y-4">
-             {labels.sort((a,b) => data.results[b] - data.results[a]).map((roll, idx) => (
-               <div key={roll} className="flex items-center justify-between p-3 rounded-xl bg-gray-50">
-                 <div className="flex items-center gap-3">
-                   <span className={`w-6 h-6 flex items-center justify-center rounded-full text-[10px] font-bold ${idx === 0 ? 'bg-accent text-white' : 'bg-gray-200 text-gray-500'}`}>
-                     {idx + 1}
-                   </span>
-                   <span className="font-medium text-primary">{roll}</span>
-                 </div>
-                 <span className="font-bold text-accent">{data.results[roll]} <span className="text-[10px] font-normal text-gray-400">votes</span></span>
-               </div>
-             ))}
-             {labels.length === 0 && <p className="text-center text-gray-400 py-10 italic">No votes recorded yet.</p>}
-           </div>
-        </Card>
+          <Card className="space-y-6">
+            <h3 className="font-bold text-lg text-primary dark:text-white">Standings</h3>
+            <div className="space-y-4">
+              {data.tallies.map((t, i) => (
+                <div key={t.candidate} className="flex items-center justify-between p-3 rounded-xl bg-gray-50 dark:bg-gray-800">
+                  <div className="flex items-center gap-3">
+                    <span className="w-6 h-6 flex items-center justify-center bg-primary text-white rounded-full text-xs font-bold">{i+1}</span>
+                    <span className="font-mono font-bold dark:text-white">{t.candidate}</span>
+                  </div>
+                  <span className="font-bold text-accent">{t.votes} votes</span>
+                </div>
+              ))}
+            </div>
+          </Card>
+        </div>
       </div>
-
-      {toast && <Toast {...toast} onClose={() => setToast(null)} />}
-    </div>
+    </AdminLayout>
   );
 };
 
