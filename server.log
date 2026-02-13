@@ -2,9 +2,10 @@
 > election-platform@1.0.0 start
 > node server/index.js
 
-[dotenv@17.2.4] injecting env (0) from .env -- tip: 🔑 add access controls to secrets: https://dotenvx.com/ops
-[dotenv@17.2.4] injecting env (0) from .env -- tip: ⚙️  specify custom .env file path with { path: '/custom/path/.env' }
-Firebase Admin SDK initialized successfully
-Server running on port 5001
-[0mGET /auth [32m200[0m 8.349 ms - 453[0m
+[dotenv@17.2.4] injecting env (0) from .env -- tip: ⚙️  enable debug logging with { debug: true }
+[dotenv@17.2.4] injecting env (0) from .env -- tip: 🗂️ backup and recover secrets: https://dotenvx.com/ops
+FIREBASE_SERVICE_ACCOUNT environment variable is missing.
+Firebase initialized via Application Default Credentials (Local Fallback)
+Server running on port 5002
+[0mGET /api/health [32m200[0m 13.712 ms - 15[0m
 Terminated

@@ -16,6 +16,9 @@ const analyticsRoutes = require('./routes/analyticsRoutes');
 
 const app = express();
 
+// Render and other proxies trust settings
+app.set('trust proxy', 1);
+
 // Security Middleware
 app.use(helmet({
   contentSecurityPolicy: false,
@@ -32,9 +35,11 @@ app.use(morgan('dev'));
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 100,
-  message: 'Too many requests from this IP, please try again after 15 minutes',
+  message: { message: 'Too many requests from this IP, please try again after 15 minutes' },
   standardHeaders: true,
   legacyHeaders: false,
+  // This helps suppress the X-Forwarded-For warning on some platforms
+  validate: { xForwardedForHeader: false },
 });
 app.use('/api/', limiter);
 
@@ -53,7 +58,7 @@ if (process.env.NODE_ENV === 'production') {
   const distPath = path.join(__dirname, '../client/dist');
   app.use(express.static(distPath));
 
-  // Wildcard route for SPA support - Express 5 compatible
+  // Wildcard route for SPA support - Regex to ignore /api
   app.get(/^(?!\/api).+/, (req, res) => {
     res.sendFile(path.join(distPath, 'index.html'));
   });
@@ -61,8 +66,11 @@ if (process.env.NODE_ENV === 'production') {
 
 // Error Handling Middleware
 app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(500).json({ message: 'Something went wrong on the server' });
+  console.error('GLOBAL_ERROR_HANDLER:', err);
+  res.status(err.status || 500).json({
+    message: err.message || 'Something went wrong on the server',
+    error: process.env.NODE_ENV === 'production' ? {} : err
+  });
 });
 
 // Start Server

@@ -10,6 +10,8 @@ const submitVote = async (req, res) => {
       return res.status(400).json({ message: 'Missing required fields' });
     }
 
+    if (!db) throw new Error('Database not initialized');
+
     // 1. Validate session is active
     const sessionDoc = await db.collection('electionSessions').doc(sessionId).get();
     if (!sessionDoc.exists) return res.status(404).json({ message: 'Session not found' });
@@ -55,7 +57,7 @@ const submitVote = async (req, res) => {
         timestamp: admin.firestore.FieldValue.serverTimestamp()
       });
 
-      // Record the actual vote (anonymous or linked depending on requirements, here we store it securely)
+      // Record the actual vote
       const voteRef = db.collection('votes').doc();
       transaction.set(voteRef, {
         sessionId,
@@ -69,6 +71,7 @@ const submitVote = async (req, res) => {
 
     res.status(200).json({ message: 'Your vote has been securely recorded.' });
   } catch (error) {
+    console.error('SUBMIT_VOTE_ERROR:', error);
     if (error.message === 'You have already responded. Duplicate voting is not allowed.') {
         return res.status(400).json({ message: error.message });
     }
@@ -81,12 +84,15 @@ const checkVoterStatus = async (req, res) => {
         const { sessionId, rollNumber } = req.query;
         if (!sessionId || !rollNumber) return res.status(400).json({ message: 'Missing params' });
 
+        if (!db) throw new Error('Database not initialized');
+
         const voterDoc = await db.collection('voters').doc(`${sessionId}_${rollNumber}`).get();
         if (voterDoc.exists && voterDoc.data().hasVoted) {
             return res.json({ hasVoted: true });
         }
         res.json({ hasVoted: false });
     } catch (error) {
+        console.error('CHECK_VOTER_STATUS_ERROR:', error);
         res.status(500).json({ message: error.message });
     }
 };

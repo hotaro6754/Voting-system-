@@ -9,6 +9,8 @@ const createDataset = async (req, res) => {
       return res.status(400).json({ message: 'Invalid dataset data' });
     }
 
+    if (!db) throw new Error('Database not initialized');
+
     const datasetId = uuidv4();
     const datasetRef = db.collection('datasets').doc(datasetId);
 
@@ -29,6 +31,7 @@ const createDataset = async (req, res) => {
 
 const getAllDatasets = async (req, res) => {
   try {
+    if (!db) throw new Error('Database not initialized');
     const snapshot = await db.collection('datasets').get();
     const datasets = [];
     snapshot.forEach(doc => datasets.push(doc.data()));
@@ -41,6 +44,7 @@ const getAllDatasets = async (req, res) => {
 
 const getDatasetById = async (req, res) => {
     try {
+      if (!db) throw new Error('Database not initialized');
       const datasetDoc = await db.collection('datasets').doc(req.params.id).get();
       if (!datasetDoc.exists) {
         return res.status(404).json({ message: 'Dataset not found' });
@@ -52,8 +56,28 @@ const getDatasetById = async (req, res) => {
     }
 };
 
+const updateDataset = async (req, res) => {
+    try {
+      if (!db) throw new Error('Database not initialized');
+      const { name, description, rollNumbers } = req.body;
+      const datasetRef = db.collection('datasets').doc(req.params.id);
+
+      const updateData = {};
+      if (name) updateData.name = name;
+      if (description) updateData.description = description;
+      if (rollNumbers) updateData.rollNumbers = rollNumbers;
+
+      await datasetRef.update(updateData);
+      res.json({ message: 'Dataset updated successfully' });
+    } catch (error) {
+      console.error('UPDATE_DATASET_ERROR:', error);
+      res.status(500).json({ message: error.message });
+    }
+};
+
 const deleteDataset = async (req, res) => {
     try {
+      if (!db) throw new Error('Database not initialized');
       await db.collection('datasets').doc(req.params.id).delete();
       res.json({ message: 'Dataset deleted successfully' });
     } catch (error) {
@@ -62,4 +86,4 @@ const deleteDataset = async (req, res) => {
     }
 };
 
-module.exports = { createDataset, getAllDatasets, getDatasetById, deleteDataset };
+module.exports = { createDataset, getAllDatasets, getDatasetById, updateDataset, deleteDataset };
