@@ -16,22 +16,25 @@ const createSession = async (req, res) => {
       sessionId,
       name,
       datasetId,
-      startTime, // ISO string
-      endTime,   // ISO string
+      startTime,
+      endTime,
       allowSelfVote: allowSelfVote || false,
-      resultsVisibility: resultsVisibility || 'hidden', // 'hidden' or 'public'
-      status: 'upcoming', // initial status
+      resultsVisibility: resultsVisibility || 'hidden',
+      status: 'upcoming',
       createdAt: new Date().toISOString()
     });
 
     res.status(201).json({ sessionId, message: 'Session created successfully' });
   } catch (error) {
+    console.error('CREATE_SESSION_ERROR:', error);
     res.status(500).json({ message: error.message });
   }
 };
 
 const getAllSessions = async (req, res) => {
   try {
+    if (!db) throw new Error('Firestore database not initialized. Check your FIREBASE_SERVICE_ACCOUNT.');
+
     const snapshot = await db.collection('electionSessions').get();
     const sessions = [];
     const now = new Date();
@@ -41,14 +44,12 @@ const getAllSessions = async (req, res) => {
       const start = new Date(data.startTime);
       const end = new Date(data.endTime);
 
-      // Auto-update status based on time
       let status = 'upcoming';
       if (now >= start && now <= end) status = 'active';
       else if (now > end) status = 'ended';
 
       if (data.status !== status) {
-          // Update in background if status changed
-          db.collection('electionSessions').doc(data.sessionId).update({ status });
+          db.collection('electionSessions').doc(data.sessionId).update({ status }).catch(e => console.error('Status update fail:', e));
           data.status = status;
       }
 
@@ -56,6 +57,7 @@ const getAllSessions = async (req, res) => {
     });
     res.json(sessions);
   } catch (error) {
+    console.error('GET_ALL_SESSIONS_ERROR:', error);
     res.status(500).json({ message: error.message });
   }
 };
@@ -68,6 +70,7 @@ const getSessionById = async (req, res) => {
       }
       res.json(sessionDoc.data());
     } catch (error) {
+      console.error('GET_SESSION_BY_ID_ERROR:', error);
       res.status(500).json({ message: error.message });
     }
 };
@@ -88,6 +91,7 @@ const updateSession = async (req, res) => {
       await sessionRef.update(updateData);
       res.json({ message: 'Session updated successfully' });
     } catch (error) {
+      console.error('UPDATE_SESSION_ERROR:', error);
       res.status(500).json({ message: error.message });
     }
 };
@@ -97,6 +101,7 @@ const deleteSession = async (req, res) => {
       await db.collection('electionSessions').doc(req.params.id).delete();
       res.json({ message: 'Session deleted successfully' });
     } catch (error) {
+      console.error('DELETE_SESSION_ERROR:', error);
       res.status(500).json({ message: error.message });
     }
 };

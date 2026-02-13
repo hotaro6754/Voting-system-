@@ -78,3 +78,11 @@ If you prefer to deploy everything as a single Web Service:
 5. Set the **Start Command** to: `npm start`
 6. Add the required Environment Variables (`FIREBASE_SERVICE_ACCOUNT`, etc.) and ensure `NODE_ENV` is set to `production`.
 7. The server will build the frontend and serve it automatically.
+
+## 8. Troubleshooting "No Elections Found"
+
+If your landing page is empty or shows a connection error:
+1. **Check Render Logs:** Look for `CREATE_SESSION_ERROR` or `GET_ALL_SESSIONS_ERROR`.
+2. **Verify Environment Variables:** Ensure `FIREBASE_SERVICE_ACCOUNT` is a valid JSON string without extra spaces or hidden characters.
+3. **Database Rules:** Ensure your Firestore rules allow the Service Account to read/write (Service accounts bypass security rules by default, but double-check initialization).
+4. **Seeding:** Remember that the database starts empty. Use the Admin Portal (`/admin/login`) to create your first Dataset and Session.
