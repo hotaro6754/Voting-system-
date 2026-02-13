@@ -3,7 +3,7 @@ const { db } = require('../models/firebase');
 const getResults = async (req, res) => {
   try {
     const { sessionId } = req.params;
-    const sessionDoc = await db.collection('electionSessions').doc(sessionId).get();
+    const sessionDoc = await db.collection('sessions').doc(sessionId).get();
 
     if (!sessionDoc.exists) return res.status(404).json({ message: 'Session not found' });
     const sessionData = sessionDoc.data();
@@ -68,7 +68,7 @@ const getAdminOverview = async (req, res) => {
 
         const [datasetsSnap, sessionsSnap, votesSnap] = await Promise.all([
             db.collection('datasets').get(),
-            db.collection('electionSessions').get(),
+            db.collection('sessions').get(),
             db.collection('votes').get()
         ]);
 

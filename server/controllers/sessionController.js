@@ -22,7 +22,7 @@ const createSession = async (req, res) => {
     if (!db) throw new Error('Database not initialized');
 
     const sessionId = uuidv4();
-    const sessionRef = db.collection('electionSessions').doc(sessionId);
+    const sessionRef = db.collection('sessions').doc(sessionId);
 
     // Get dataset name for display convenience
     const datasetDoc = await db.collection('datasets').doc(datasetId).get();
@@ -52,7 +52,7 @@ const getAllSessions = async (req, res) => {
   try {
     if (!db) throw new Error('Firestore database not initialized.');
 
-    const snapshot = await db.collection('electionSessions').get();
+    const snapshot = await db.collection('sessions').get();
     const sessions = [];
     const now = new Date();
 
@@ -69,7 +69,7 @@ const getAllSessions = async (req, res) => {
       else if (now > end) status = 'ended';
 
       if (data.status !== status) {
-          batch.update(db.collection('electionSessions').doc(data.sessionId), { status });
+          batch.update(db.collection('sessions').doc(data.sessionId), { status });
           data.status = status;
           needsUpdate = true;
       }
@@ -93,7 +93,7 @@ const getAllSessions = async (req, res) => {
 
 const getSessionById = async (req, res) => {
     try {
-      const sessionDoc = await db.collection('electionSessions').doc(req.params.id).get();
+      const sessionDoc = await db.collection('sessions').doc(req.params.id).get();
       if (!sessionDoc.exists) {
         return res.status(404).json({ message: 'Session not found' });
       }
@@ -107,7 +107,7 @@ const getSessionById = async (req, res) => {
 const updateSession = async (req, res) => {
     try {
       const { name, startTime, endTime, allowSelfVote, resultsVisibility, status } = req.body;
-      const sessionRef = db.collection('electionSessions').doc(req.params.id);
+      const sessionRef = db.collection('sessions').doc(req.params.id);
 
       const updateData = {};
       if (name) updateData.name = name;
@@ -127,7 +127,7 @@ const updateSession = async (req, res) => {
 
 const deleteSession = async (req, res) => {
     try {
-      await db.collection('electionSessions').doc(req.params.id).delete();
+      await db.collection('sessions').doc(req.params.id).delete();
       res.json({ message: 'Session deleted successfully' });
     } catch (error) {
       console.error('DELETE_SESSION_ERROR:', error);

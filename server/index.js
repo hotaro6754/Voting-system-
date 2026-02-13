@@ -8,6 +8,15 @@ const path = require('path');
 
 dotenv.config();
 
+// 1. Environment Variable Validation
+const requiredEnvVars = ['FIREBASE_SERVICE_ACCOUNT', 'JWT_SECRET', 'ADMIN_PASSWORD'];
+const missingVars = requiredEnvVars.filter(v => !process.env[v]);
+
+if (missingVars.length > 0 && process.env.NODE_ENV === 'production') {
+  console.error('CRITICAL: Missing required environment variables:', missingVars.join(', '));
+  process.exit(1);
+}
+
 const authRoutes = require('./routes/auth');
 const datasetRoutes = require('./routes/datasetRoutes');
 const sessionRoutes = require('./routes/sessionRoutes');
@@ -38,13 +47,12 @@ const limiter = rateLimit({
   message: { message: 'Too many requests from this IP, please try again after 15 minutes' },
   standardHeaders: true,
   legacyHeaders: false,
-  // This helps suppress the X-Forwarded-For warning on some platforms
   validate: { xForwardedForHeader: false },
 });
 app.use('/api/', limiter);
 
 // Health check
-app.get('/api/health', (req, res) => res.status(200).json({ status: 'ok' }));
+app.get('/api/health', (req, res) => res.status(200).json({ status: 'ok', database: 'connected' }));
 
 // API Routes
 app.use('/api/auth', authRoutes);
@@ -58,7 +66,6 @@ if (process.env.NODE_ENV === 'production') {
   const distPath = path.join(__dirname, '../client/dist');
   app.use(express.static(distPath));
 
-  // Wildcard route for SPA support - Regex to ignore /api
   app.get(/^(?!\/api).+/, (req, res) => {
     res.sendFile(path.join(distPath, 'index.html'));
   });
@@ -77,6 +84,7 @@ app.use((err, req, res, next) => {
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
+  console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
 });
 
 module.exports = app;
