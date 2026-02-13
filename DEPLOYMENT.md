@@ -50,3 +50,19 @@ Or trigger an internal endpoint if you add a temporary route for it.
 - [ ] Set `NODE_ENV=production`.
 - [ ] Use HTTPS (Vercel/Render handles this automatically).
 - [ ] Regularly check Audit Logs in Firestore.
+
+## 6. Render Deployment (Blueprint)
+
+This repository includes a `render.yaml` file for one-click deployment.
+
+1. Create a new **Blueprint** on [Render](https://dashboard.render.com/blueprints).
+2. Connect your GitHub repository.
+3. Render will automatically detect the configuration and propose creating two services:
+   - **election-platform-api** (Web Service)
+   - **election-platform-ui** (Static Site)
+4. **Configuration:**
+   - The `VITE_API_URL` will be automatically linked between services.
+   - You must manually add the following Environment Variables to the **election-platform-api** service in the Render dashboard:
+     - `FIREBASE_SERVICE_ACCOUNT`: The JSON string of your Firebase service account.
+     - `ADMIN_PASSWORD`: The desired password for the initial admin.
+5. Once the API is live, don't forget to run the seeding script (see section 4).
