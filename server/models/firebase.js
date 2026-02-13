@@ -1,36 +1,33 @@
 const admin = require('firebase-admin');
-const dotenv = require('dotenv');
 
-dotenv.config();
-
-let db;
+let db = null;
 
 const initializeFirebase = () => {
   try {
     const serviceAccountVar = process.env.FIREBASE_SERVICE_ACCOUNT;
 
     if (!serviceAccountVar) {
-      const errorMsg = 'CRITICAL: FIREBASE_SERVICE_ACCOUNT environment variable is missing.';
-      console.error(errorMsg);
-      if (process.env.NODE_ENV === 'production') {
-        throw new Error(errorMsg);
-      }
-      return;
+      console.error('❌ FIREBASE_INITIALIZATION_ERROR: FIREBASE_SERVICE_ACCOUNT environment variable is missing.');
+      return null;
     }
 
-    console.log('Attempting to initialize Firebase with Service Account...');
+    console.log('Attempting to initialize Firebase Admin SDK...');
+
     let serviceAccount;
     try {
+      // Parse the JSON string
       serviceAccount = typeof serviceAccountVar === 'string'
         ? JSON.parse(serviceAccountVar)
         : serviceAccountVar;
 
+      // Ensure the private key handles newlines correctly
       if (serviceAccount.private_key) {
         serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, '\n');
       }
     } catch (parseError) {
-      console.error('CRITICAL: Failed to parse FIREBASE_SERVICE_ACCOUNT. Ensure it is a valid JSON string.');
-      throw new Error('Invalid Firebase Service Account JSON format.');
+      console.error('❌ FIREBASE_INITIALIZATION_ERROR: Failed to parse FIREBASE_SERVICE_ACCOUNT JSON string.');
+      console.error('Debugging Tip: Ensure the environment variable is a valid JSON string.');
+      return null;
     }
 
     if (admin.apps.length === 0) {
@@ -38,17 +35,16 @@ const initializeFirebase = () => {
         credential: admin.credential.cert(serviceAccount)
       });
     }
-    db = admin.firestore();
-    console.log('Firebase Admin SDK initialized successfully via Environment Variable');
+
+    const firestore = admin.firestore();
+    console.log('✅ Firebase Admin SDK initialized successfully.');
+    return firestore;
   } catch (error) {
-    console.error('FIREBASE_INITIALIZATION_ERROR:', error.message);
-    if (process.env.NODE_ENV === 'production') {
-      // In production, we throw to prevent the server from starting in a broken state
-      throw error;
-    }
+    console.error('❌ FIREBASE_INITIALIZATION_ERROR:', error.message);
+    return null;
   }
 };
 
-initializeFirebase();
+db = initializeFirebase();
 
 module.exports = { admin, db };
