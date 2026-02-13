@@ -1,4 +1,5 @@
 services:
+  # Split Deployment (Recommended for better performance/cost)
   # Backend Web Service
   - type: web
     name: election-platform-api

@@ -66,3 +66,15 @@ This repository includes a `render.yaml` file for one-click deployment.
      - `FIREBASE_SERVICE_ACCOUNT`: The JSON string of your Firebase service account.
      - `ADMIN_PASSWORD`: The desired password for the initial admin.
 5. Once the API is live, don't forget to run the seeding script (see section 4).
+
+## 7. Render Unified Deployment (Alternative)
+
+If you prefer to deploy everything as a single Web Service:
+
+1. Create a new **Web Service** on Render.
+2. Connect your repository.
+3. Render will detect the root `package.json`.
+4. Set the **Build Command** to: `npm run build`
+5. Set the **Start Command** to: `npm start`
+6. Add the required Environment Variables (`FIREBASE_SERVICE_ACCOUNT`, etc.) and ensure `NODE_ENV` is set to `production`.
+7. The server will build the frontend and serve it automatically.

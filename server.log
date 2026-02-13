@@ -1,0 +1,10 @@
+
+> election-platform@1.0.0 start
+> node server/index.js
+
+[dotenv@17.2.4] injecting env (0) from .env -- tip: 🔑 add access controls to secrets: https://dotenvx.com/ops
+[dotenv@17.2.4] injecting env (0) from .env -- tip: ⚙️  specify custom .env file path with { path: '/custom/path/.env' }
+Firebase Admin SDK initialized successfully
+Server running on port 5001
+[0mGET /auth [32m200[0m 8.349 ms - 453[0m
+Terminated
