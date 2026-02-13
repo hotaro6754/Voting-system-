@@ -1,34 +1,41 @@
-import React from 'react';
+import React, { lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
-import Landing from './pages/Landing';
-import VoterAuth from './pages/VoterAuth';
-import Ballot from './pages/Ballot';
-import Success from './pages/Success';
-import AdminLogin from './pages/AdminLogin';
-import AdminDatasets from './pages/AdminDatasets';
-import AdminSessions from './pages/AdminSessions';
-import AdminAnalytics from './pages/AdminAnalytics';
-import AdminLayout from './components/AdminLayout';
+import Loader from './components/Loader';
+
+// Lazy load pages
+const Landing = lazy(() => import('./pages/Landing'));
+const VoterAuth = lazy(() => import('./pages/VoterAuth'));
+const Ballot = lazy(() => import('./pages/Ballot'));
+const Success = lazy(() => import('./pages/Success'));
+const AdminLogin = lazy(() => import('./pages/AdminLogin'));
+const AdminDatasets = lazy(() => import('./pages/AdminDatasets'));
+const AdminSessions = lazy(() => import('./pages/AdminSessions'));
+const AdminAnalytics = lazy(() => import('./pages/AdminAnalytics'));
+
+// Components
+const AdminLayout = lazy(() => import('./components/AdminLayout'));
 
 function App() {
   return (
     <BrowserRouter>
-      <Routes>
-        {/* Voter Routes */}
-        <Route path="/" element={<Landing />} />
-        <Route path="/auth" element={<VoterAuth />} />
-        <Route path="/ballot" element={<Ballot />} />
-        <Route path="/success" element={<Success />} />
+      <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-bg-light dark:bg-gray-900"><Loader /></div>}>
+        <Routes>
+          {/* Voter Routes */}
+          <Route path="/" element={<Landing />} />
+          <Route path="/auth" element={<VoterAuth />} />
+          <Route path="/ballot" element={<Ballot />} />
+          <Route path="/success" element={<Success />} />
 
-        {/* Admin Routes */}
-        <Route path="/admin/login" element={<AdminLogin />} />
-        <Route path="/admin" element={<AdminLayout />}>
-          <Route path="datasets" element={<AdminDatasets />} />
-          <Route path="sessions" element={<AdminSessions />} />
-          <Route path="analytics/:sessionId" element={<AdminAnalytics />} />
-          <Route index element={<AdminSessions />} />
-        </Route>
-      </Routes>
+          {/* Admin Routes */}
+          <Route path="/admin/login" element={<AdminLogin />} />
+          <Route path="/admin" element={<AdminLayout />}>
+            <Route path="datasets" element={<AdminDatasets />} />
+            <Route path="sessions" element={<AdminSessions />} />
+            <Route path="analytics/:sessionId" element={<AdminAnalytics />} />
+            <Route index element={<AdminSessions />} />
+          </Route>
+        </Routes>
+      </Suspense>
     </BrowserRouter>
   );
 }

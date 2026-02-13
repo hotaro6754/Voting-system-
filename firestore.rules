@@ -1,0 +1,40 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Helper functions
+    function isAdmin() {
+      return request.auth != null && get(/databases/$(database)/documents/settings/admin).data.username == request.auth.token.name;
+    }
+
+    // Election Sessions
+    match /electionSessions/{sessionId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Datasets
+    match /datasets/{datasetId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Voters (Tracking who has voted)
+    match /voters/{voterId} {
+      allow read: if true; // Or restrict to admin
+      allow create: if true; // Usually handled by backend transaction
+      allow update, delete: if isAdmin();
+    }
+
+    // Votes (The actual anonymous votes)
+    match /votes/{voteId} {
+      allow read: if isAdmin(); // Only admins can see individual votes if needed
+      allow create: if true; // Handled by backend
+      allow update, delete: if false; // Votes are immutable
+    }
+
+    // Settings
+    match /settings/{settingId} {
+      allow read, write: if isAdmin();
+    }
+  }
+}

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import api from '../services/api';
-import { Plus, Trash2, Calendar, Clock, Link2, Users } from 'lucide-react';
+import { Plus, Trash2, Calendar, Clock, Link2, Eye } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import AdminLayout from '../components/AdminLayout';
 import Button from '../components/Button';
@@ -46,14 +46,22 @@ const AdminSessions = () => {
     try {
       await api.post('/api/sessions', formData);
       setIsModalOpen(false);
+      setFormData({
+        name: '',
+        datasetId: '',
+        startTime: '',
+        endTime: '',
+        allowSelfVote: false,
+        resultsVisibility: 'hidden'
+      });
       fetchData();
     } catch (err) {
-      alert('Error creating session');
+      alert(err.response?.data?.message || 'Error creating session');
     }
   };
 
   const handleDelete = async (id) => {
-    if (window.confirm('Are you sure you want to delete this session?')) {
+    if (window.confirm('Are you sure you want to delete this session? This will remove all associated votes.')) {
       try {
         await api.delete(`/api/sessions/${id}`);
         fetchData();
@@ -85,7 +93,7 @@ const AdminSessions = () => {
             <AnimatePresence>
               {sessions.map(session => (
                 <motion.div key={session.sessionId} layout initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-                  <Card className="h-full flex flex-col justify-between hover:shadow-xl transition-all">
+                  <Card className="h-full flex flex-col justify-between hover:shadow-xl transition-all border-l-4 border-l-primary">
                     <div className="space-y-4">
                       <div className="flex justify-between items-start">
                         <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase ${
@@ -99,14 +107,15 @@ const AdminSessions = () => {
                       </div>
                       <h3 className="text-xl font-bold text-primary dark:text-white">{session.name}</h3>
                       <div className="space-y-2 text-sm text-gray-500">
-                        <div className="flex items-center gap-2"><Link2 className="w-4 h-4" /> Dataset: {session.datasetName}</div>
+                        <div className="flex items-center gap-2"><Link2 className="w-4 h-4" /> Dataset: <span className="font-semibold text-gray-700 dark:text-gray-300">{session.datasetName}</span></div>
                         <div className="flex items-center gap-2"><Calendar className="w-4 h-4" /> Starts: {new Date(session.startTime).toLocaleString()}</div>
                         <div className="flex items-center gap-2"><Clock className="w-4 h-4" /> Ends: {new Date(session.endTime).toLocaleString()}</div>
+                        <div className="flex items-center gap-2"><Eye className="w-4 h-4" /> Results: <span className="capitalize">{session.resultsVisibility}</span></div>
                       </div>
                     </div>
                     <div className="mt-6 pt-6 border-t border-gray-100 dark:border-gray-800">
                        <Button variant="outline" className="w-full" onClick={() => window.location.href = `/admin/analytics/${session.sessionId}`}>
-                          View Live Stats
+                          View Live Stats & Analytics
                        </Button>
                     </div>
                   </Card>
@@ -160,6 +169,18 @@ const AdminSessions = () => {
               />
             </div>
           </div>
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Results Visibility</label>
+            <select
+              required className="w-full p-3 rounded-xl border dark:bg-gray-800 dark:border-gray-700 dark:text-white"
+              value={formData.resultsVisibility}
+              onChange={e => setFormData({...formData, resultsVisibility: e.target.value})}
+            >
+              <option value="hidden">Admin Only (Hidden from Voters)</option>
+              <option value="public">Public Immediately</option>
+              <option value="delayed">Delayed (24h after conclusion)</option>
+            </select>
+          </div>
           <div className="flex items-center gap-4 py-2">
             <label className="flex items-center gap-2 cursor-pointer">
               <input
@@ -167,7 +188,7 @@ const AdminSessions = () => {
                 checked={formData.allowSelfVote}
                 onChange={e => setFormData({...formData, allowSelfVote: e.target.checked})}
               />
-              <span className="text-sm">Allow Self Vote</span>
+              <span className="text-sm">Allow candidates to vote for themselves</span>
             </label>
           </div>
           <Button type="submit" className="w-full py-4 mt-4">Initialize Session</Button>
