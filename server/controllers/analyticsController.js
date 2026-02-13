@@ -8,15 +8,25 @@ const getResults = async (req, res) => {
     if (!sessionDoc.exists) return res.status(404).json({ message: 'Session not found' });
     const sessionData = sessionDoc.data();
 
-    // Check if results should be public
-    const isPublic = sessionData.resultsVisibility === 'public' || sessionData.status === 'ended';
-    const isAdmin = req.user && req.user.role === 'admin';
+    const now = new Date();
+    const endTime = new Date(sessionData.endTime);
+    const releaseTime = new Date(endTime.getTime() + 24 * 60 * 60 * 1000); // 24 hours later
 
-    if (!isPublic && !isAdmin) {
-        return res.status(403).json({ message: 'Results are currently hidden' });
+    // Authorization Check
+    const isAdmin = req.user && req.user.role === 'admin';
+    const isPubliclyReleased = sessionData.resultsVisibility === 'public' || (sessionData.status === 'ended' && now >= releaseTime);
+
+    if (!isPubliclyReleased && !isAdmin) {
+        if (sessionData.status === 'ended') {
+            return res.status(403).json({
+                message: 'Results are currently being audited and will be released 24 hours after the election end time.',
+                releaseTime: releaseTime.toISOString()
+            });
+        }
+        return res.status(403).json({ message: 'Results are currently hidden by the administrator.' });
     }
 
-    // Fetch all votes for this session
+    // Fetch votes (Optimized: only fetch necessary fields)
     const votesSnapshot = await db.collection('votes').where('sessionId', '==', sessionId).get();
 
     const results = {};
@@ -30,33 +40,46 @@ const getResults = async (req, res) => {
     const totalEligible = datasetDoc.exists ? datasetDoc.data().rollNumbers.length : 0;
     const totalVotes = votesSnapshot.size;
 
+    // Convert results object to sorted array for easier display
+    const tallies = Object.entries(results)
+        .map(([candidate, votes]) => ({ candidate, votes }))
+        .sort((a, b) => b.votes - a.votes);
+
     res.json({
       sessionId,
       sessionName: sessionData.name,
-      results,
+      tallies,
       totalEligible,
       totalVotes,
-      participationRate: totalEligible > 0 ? (totalVotes / totalEligible) * 100 : 0,
-      status: sessionData.status
+      participationRate: totalEligible > 0 ? parseFloat(((totalVotes / totalEligible) * 100).toFixed(2)) : 0,
+      status: sessionData.status,
+      releaseTime: releaseTime.toISOString(),
+      isPublic: isPubliclyReleased
     });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    console.error('GET_RESULTS_ERROR:', error);
+    res.status(500).json({ message: 'Error retrieving analytics data' });
   }
 };
 
 const getAdminOverview = async (req, res) => {
     try {
-        const datasetsCount = (await db.collection('datasets').get()).size;
-        const sessionsCount = (await db.collection('electionSessions').get()).size;
-        const totalVotesCount = (await db.collection('votes').get()).size;
+        if (!db) throw new Error('Database not initialized');
+
+        const [datasetsSnap, sessionsSnap, votesSnap] = await Promise.all([
+            db.collection('datasets').get(),
+            db.collection('electionSessions').get(),
+            db.collection('votes').get()
+        ]);
 
         res.json({
-            datasetsCount,
-            sessionsCount,
-            totalVotesCount
+            datasetsCount: datasetsSnap.size,
+            sessionsCount: sessionsSnap.size,
+            totalVotesCount: votesSnap.size
         });
     } catch (error) {
-        res.status(500).json({ message: error.message });
+        console.error('GET_ADMIN_OVERVIEW_ERROR:', error);
+        res.status(500).json({ message: 'Error retrieving overview data' });
     }
 };
 

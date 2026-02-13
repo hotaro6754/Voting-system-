@@ -5,20 +5,37 @@ const createSession = async (req, res) => {
   try {
     const { name, datasetId, startTime, endTime, allowSelfVote, resultsVisibility } = req.body;
 
-    if (!name || !datasetId || !startTime || !endTime) {
-      return res.status(400).json({ message: 'Missing required fields' });
+    // Validation
+    if (!name || typeof name !== 'string' || name.length < 3) {
+      return res.status(400).json({ message: 'Session name must be at least 3 characters long' });
     }
+    if (!datasetId || typeof datasetId !== 'string') {
+      return res.status(400).json({ message: 'A valid Dataset ID is required' });
+    }
+    if (!startTime || !endTime || isNaN(Date.parse(startTime)) || isNaN(Date.parse(endTime))) {
+      return res.status(400).json({ message: 'Valid start and end times are required' });
+    }
+    if (new Date(startTime) >= new Date(endTime)) {
+      return res.status(400).json({ message: 'End time must be after start time' });
+    }
+
+    if (!db) throw new Error('Database not initialized');
 
     const sessionId = uuidv4();
     const sessionRef = db.collection('electionSessions').doc(sessionId);
+
+    // Get dataset name for display convenience
+    const datasetDoc = await db.collection('datasets').doc(datasetId).get();
+    const datasetName = datasetDoc.exists ? datasetDoc.data().name : 'Unknown Dataset';
 
     await sessionRef.set({
       sessionId,
       name,
       datasetId,
-      startTime,
-      endTime,
-      allowSelfVote: allowSelfVote || false,
+      datasetName,
+      startTime: new Date(startTime).toISOString(),
+      endTime: new Date(endTime).toISOString(),
+      allowSelfVote: !!allowSelfVote,
       resultsVisibility: resultsVisibility || 'hidden',
       status: 'upcoming',
       createdAt: new Date().toISOString()
@@ -33,11 +50,14 @@ const createSession = async (req, res) => {
 
 const getAllSessions = async (req, res) => {
   try {
-    if (!db) throw new Error('Firestore database not initialized. Check your FIREBASE_SERVICE_ACCOUNT.');
+    if (!db) throw new Error('Firestore database not initialized.');
 
     const snapshot = await db.collection('electionSessions').get();
     const sessions = [];
     const now = new Date();
+
+    const batch = db.batch();
+    let needsUpdate = false;
 
     snapshot.forEach(doc => {
       let data = doc.data();
@@ -49,12 +69,21 @@ const getAllSessions = async (req, res) => {
       else if (now > end) status = 'ended';
 
       if (data.status !== status) {
-          db.collection('electionSessions').doc(data.sessionId).update({ status }).catch(e => console.error('Status update fail:', e));
+          batch.update(db.collection('electionSessions').doc(data.sessionId), { status });
           data.status = status;
+          needsUpdate = true;
       }
 
       sessions.push(data);
     });
+
+    if (needsUpdate) {
+        await batch.commit();
+    }
+
+    // Sort by creation date descending
+    sessions.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
     res.json(sessions);
   } catch (error) {
     console.error('GET_ALL_SESSIONS_ERROR:', error);
@@ -82,9 +111,9 @@ const updateSession = async (req, res) => {
 
       const updateData = {};
       if (name) updateData.name = name;
-      if (startTime) updateData.startTime = startTime;
-      if (endTime) updateData.endTime = endTime;
-      if (allowSelfVote !== undefined) updateData.allowSelfVote = allowSelfVote;
+      if (startTime) updateData.startTime = new Date(startTime).toISOString();
+      if (endTime) updateData.endTime = new Date(endTime).toISOString();
+      if (allowSelfVote !== undefined) updateData.allowSelfVote = !!allowSelfVote;
       if (resultsVisibility) updateData.resultsVisibility = resultsVisibility;
       if (status) updateData.status = status;
 

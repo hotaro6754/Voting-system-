@@ -8,4 +8,18 @@ export default defineConfig({
     react(),
     tailwindcss(),
   ],
+  build: {
+    chunkSizeWarningLimit: 1000,
+    minify: 'esbuild',
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'vendor': ['react', 'react-dom', 'react-router-dom', 'axios'],
+          'firebase': ['firebase/app', 'firebase/firestore'],
+          'charts': ['chart.js', 'react-chartjs-2'],
+          'ui': ['framer-motion', 'lucide-react']
+        }
+      }
+    }
+  }
 })
